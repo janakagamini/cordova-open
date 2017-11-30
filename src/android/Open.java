@@ -1,5 +1,6 @@
 package com.disusered;
 
+import android.Manifest;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
@@ -7,6 +8,12 @@ import android.os.Build;
 import android.os.Environment;
 import android.util.Base64;
 import android.webkit.MimeTypeMap;
+
+import com.karumi.dexter.Dexter;
+import com.karumi.dexter.MultiplePermissionsReport;
+import com.karumi.dexter.PermissionToken;
+import com.karumi.dexter.listener.PermissionRequest;
+import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
@@ -16,6 +23,7 @@ import org.json.JSONException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 
 /**
  * This class starts an activity for an intent to view files
@@ -46,7 +54,25 @@ public class Open extends CordovaPlugin {
             cordova.getThreadPool().execute(new Runnable() {
                 @Override
                 public void run() {
-                    saveAndChooseIntent(byteString, mimeType, callbackContext);
+                    Dexter.withActivity(Open.this.cordova.getActivity())
+                            .withPermissions(Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                                    Manifest.permission.READ_EXTERNAL_STORAGE)
+                            .withListener(new MultiplePermissionsListener() {
+                                @Override
+                                public void onPermissionsChecked(MultiplePermissionsReport report) {
+                                    if (report.areAllPermissionsGranted()) {
+                                        saveAndChooseIntent(byteString, mimeType, callbackContext);
+                                    } else {
+                                        callbackContext.error("Permission denied, try again.");
+                                    }
+                                }
+
+                                @Override
+                                public void onPermissionRationaleShouldBeShown(List<PermissionRequest> permissions, PermissionToken token) {
+                                    token.continuePermissionRequest();
+                                }
+                            })
+                            .check();
                 }
             });
 
@@ -84,7 +110,7 @@ public class Open extends CordovaPlugin {
     private void chooseIntent(String path, String mime, CallbackContext callbackContext) {
         if (path != null && path.length() > 0) {
             try {
-                Uri uri = Uri.parse(path);
+                Uri uri = Uri.fromFile(new File(path));
                 if (mime == null) mime = getMimeType(path);
                 Intent fileIntent = new Intent(Intent.ACTION_VIEW);
 
@@ -119,7 +145,7 @@ public class Open extends CordovaPlugin {
         if (isExternalStorageWritable()) {
             try {
                 byte[] byteArray = Base64.decode(byteString, 0);
-                File filePath = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/_tempfile");
+                File filePath = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/hello_world.pdf");
                 FileOutputStream os = new FileOutputStream(filePath, true);
                 os.write(byteArray);
                 os.flush();

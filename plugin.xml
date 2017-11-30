@@ -17,6 +17,7 @@
     </config-file>
     <config-file parent="/*" target="AndroidManifest.xml"/>
     <source-file src="src/android/Open.java" target-dir="src/com/disusered"/>
+    <framework src="com.karumi:dexter:4.2.0" />
   </platform>
   <platform name="ios">
     <config-file parent="/*" target="config.xml">
