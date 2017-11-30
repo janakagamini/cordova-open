@@ -29,6 +29,13 @@ exports.open = function(uri, success, error, trustAllCertificates) {
   }
 };
 
+exports.openBase64 = function(encodedByteString, mimeType, success, error, trustAllCertificates) {
+  if (!encodedByteString || !mimeType || arguments.length === 0) { return false; }
+    
+  exec(onSuccess.bind(this, encodedByteString, mimeType, success),
+    onError.bind(this, error), 'Open', 'openBase64', [encodedByteString, mimeType]);
+};
+
 /**
  * downloadAndOpen
  *
@@ -79,6 +86,26 @@ function onSuccess(path, callback, type) {
       fire('resume' , path);
   }
   return path;
+}
+
+/**
+ * onSuccess
+ *
+ * @param {String} encodedByteString Base64 encoded string
+ * @param {String} mimeType Mime type
+ * @param {Function} callback Callback
+ * @returns {String} File URI
+ */
+function onSuccess(encodedByteString, mimeType, callback, type) {
+  if(type !== 'resume') {
+      fire('open.success' , {encodedByteString, mimeType});
+      if (typeof callback === 'function') {
+        callback({encodedByteString, mimeType});
+      }
+  } else {
+      fire('resume' , {encodedByteString, mimeType});
+  }
+  return {encodedByteString, mimeType};
 }
 
 /**
